@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.servlet.ServletException;
@@ -289,6 +290,59 @@ public class TestConnectBroker {
         expectedLogs.add("Downloading [unknown-package]...");
         expectedLogs.add("\tDownload failed (not found).");
         checkLogEvents(expectedLogs, logCaptureResult.getCaughtEvents());
+    }
+
+    /**
+     * NXP-21573
+     */
+    @Test
+    @LogCaptureFeature.FilterWith(PkgRequestLogFilter.class)
+    public void testDownloadUnknownSnapshotPackage() throws Exception {
+        // Environment setup
+        Environment.getDefault().setProperty(Environment.DISTRIBUTION_NAME, "server");
+        Environment.getDefault().setProperty(Environment.DISTRIBUTION_VERSION, "8.3");
+        ConnectBroker connectBroker = new ConnectBroker(Environment.getDefault());
+        ((StandaloneCallbackHolder) NuxeoConnectClient.getCallBackHolder()).setTestMode(true);
+        connectBroker.setAllowSNAPSHOT(true);
+        final PackageState NON_EXISTENT = null;
+
+        // Given an unknown package 'F-1.0.0-SNAPSHOT', which is:
+        // - only available from local file system
+        // - not yet added into the Nuxeo Server 8.3
+        assertThat(new File(TEST_LOCAL_ONLY_PATH + "/F-1.0.0-SNAPSHOT.zip")).exists();
+        checkPackagesState(connectBroker, Arrays.asList("F-1.0.0-SNAPSHOT"), NON_EXISTENT);
+
+        // When enable the relax mode, and mp-add $TEST_LOCAL_ONLY_PATH/F-1.0.0-SNAPSHOT.zip
+        connectBroker.setRelax("true");
+        connectBroker.pkgAdd(TEST_LOCAL_ONLY_PATH + "/F-1.0.0-SNAPSHOT.zip", false);
+
+        // Then the package is added
+        List<String> startedPackages = new ArrayList<>();
+        startedPackages.add("F-1.0.0-SNAPSHOT");
+        checkPackagesState(connectBroker, startedPackages, PackageState.DOWNLOADED);
+
+        // When mp-install F
+        connectBroker.pkgRequest(null, Arrays.asList("F"), null, null, true, true);
+        connectBroker.getCommandSet().log();
+
+        // Then the installation failed
+        /*
+         * TODO address this problem
+         *
+         * This failure is due to 'ConnectBroker': it always tries to
+         * find the latest update for a SNAPSHOT package from remote,
+         * even if the package is available in local. If the remote
+         * cannot recognize this package, there's no fallback on the
+         * local one. Therefore, 'mp-install F' fails while it should
+         * not... :/
+         */
+        String keyFailure = //
+                "\tCould not download package F-1.0.0-SNAPSHOT\n" + //
+                "\tDownload failed (not found).";
+        String logMessage = logCaptureResult.getCaughtEvents().stream() //
+                .map(LoggingEvent::getRenderedMessage) //
+                .collect(Collectors.joining("\n")); //
+        assertThat(logMessage).contains(keyFailure);
     }
 
     @Test
