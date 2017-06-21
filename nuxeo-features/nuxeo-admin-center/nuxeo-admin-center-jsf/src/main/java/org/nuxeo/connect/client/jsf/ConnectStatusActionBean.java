@@ -144,7 +144,7 @@ public class ConnectStatusActionBean implements Serializable {
      */
     @Deprecated
     public boolean isRegistred() {
-        return getService().isInstanceRegistered();
+        return isRegistered();
     }
 
     protected void flushContextCache() {

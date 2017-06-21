@@ -59,8 +59,7 @@ public class ConnectStatusHolder {
      */
     @Deprecated
     public boolean isRegistred() {
-        // no cache needed
-        return getService().isInstanceRegistered();
+        return isRegistered();
     }
 
     /**
