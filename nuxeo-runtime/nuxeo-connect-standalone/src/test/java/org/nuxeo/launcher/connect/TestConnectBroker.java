@@ -339,10 +339,7 @@ public class TestConnectBroker {
         String keyFailure = //
                 "\tCould not download package F-1.0.0-SNAPSHOT\n" + //
                 "\tDownload failed (not found).";
-        String logMessage = logCaptureResult.getCaughtEvents().stream() //
-                .map(LoggingEvent::getRenderedMessage) //
-                .collect(Collectors.joining("\n")); //
-        assertThat(logMessage).doesNotContain(keyFailure);
+        assertThat(logOf(logCaptureResult)).doesNotContain(keyFailure);
     }
 
     @Test
@@ -405,16 +402,17 @@ public class TestConnectBroker {
                 PackageState.DOWNLOADED);
 
         // check logs
-        expectedLogs = Arrays.asList(
-                "The following SNAPSHOT package(s) will be replaced in local cache : [src/test/resources/packages/store/local-only/F-1.0.0-SNAPSHOT.zip]",
-                "Replacement of F-1.0.0-SNAPSHOT in local cache...",
-                "Added " + TEST_LOCAL_ONLY_PATH + "/F-1.0.0-SNAPSHOT.zip",
-                "Relax restriction to target platform server-8.3 because of package(s) F-1.0.0-SNAPSHOT",
-                "\nDependency resolution:\n" + "  Installation order (2):        E-1.0.1/F-1.0.0-SNAPSHOT\n"
-                        + "  Unchanged packages (9):        A:1.0.0, B:1.0.1-SNAPSHOT, hfA:1.0.0, C:1.0.0, D:1.0.2-SNAPSHOT, studioA:1.0.0, G:1.0.1-SNAPSHOT, H:1.0.1-SNAPSHOT, J:1.0.1\n"
-                        + "  Local packages to install (2): E:1.0.1, F:1.0.0-SNAPSHOT\n",
-                "Installing E-1.0.1", "Installing F-1.0.0-SNAPSHOT");
-        checkLogEvents(expectedLogs, logCaptureResult.getCaughtEvents());
+        String expectedLog = //
+                "Relax restriction to target platform server-8.3 because of package(s) F-1.0.0-SNAPSHOT\n" + //
+                "\n" + //
+                "Dependency resolution:\n" + //
+                "  Installation order (2):        E-1.0.1/F-1.0.0-SNAPSHOT\n" + //
+                "  Unchanged packages (9):        A:1.0.0, B:1.0.1-SNAPSHOT, hfA:1.0.0, C:1.0.0, D:1.0.2-SNAPSHOT, studioA:1.0.0, G:1.0.1-SNAPSHOT, H:1.0.1-SNAPSHOT, J:1.0.1\n" + //
+                "  Local packages to install (2): E:1.0.1, F:1.0.0-SNAPSHOT\n" + //
+                "\n" + //
+                "Installing E-1.0.1\n" + //
+                "Installing F-1.0.0-SNAPSHOT";
+        assertThat(logOf(logCaptureResult)).isEqualTo(expectedLog);
     }
 
     @Test
@@ -539,15 +537,11 @@ public class TestConnectBroker {
                 PackageState.DOWNLOADED);
 
         // check logs
-        expectedLogs = Arrays.asList(
-                "The following SNAPSHOT package(s) will be replaced in local cache : [src/test/resources/packages/store/B-1.0.1-SNAPSHOT.zip]",
-                "Uninstalling B-1.0.1-SNAPSHOT", "Replacement of B-1.0.1-SNAPSHOT in local cache...",
-                "Added " + TEST_STORE_PATH + "/B-1.0.1-SNAPSHOT.zip",
-                "\nDependency resolution:\n" + "  Installation order (1):        B-1.0.1-SNAPSHOT\n"
-                        + "  Unchanged packages (8):        A:1.0.0, hfA:1.0.0, C:1.0.0, D:1.0.2-SNAPSHOT, studioA:1.0.0, G:1.0.1-SNAPSHOT, H:1.0.1-SNAPSHOT, J:1.0.1\n"
-                        + "  Local packages to install (1): B:1.0.1-SNAPSHOT\n",
-                "Installing B-1.0.1-SNAPSHOT");
-        checkLogEvents(expectedLogs, logCaptureResult.getCaughtEvents());
+        String expectedLog = //
+                "\n" + //
+                "Dependency resolution:\n" + //
+                "  Unchanged packages (9):        A:1.0.0, B:1.0.1-SNAPSHOT, hfA:1.0.0, C:1.0.0, D:1.0.2-SNAPSHOT, studioA:1.0.0, G:1.0.1-SNAPSHOT, H:1.0.1-SNAPSHOT, J:1.0.1\n";
+        assertThat(logOf(logCaptureResult)).isEqualTo(expectedLog);
     }
 
     @Test
@@ -936,6 +930,12 @@ public class TestConnectBroker {
         for (int i = 0; i < caughtEvents.size(); i++) {
             assertEquals(expectedLogs.get(i), caughtEvents.get(i).getRenderedMessage());
         }
+    }
+
+    protected static String logOf(LogCaptureFeature.Result logCaptureResult) {
+        return logCaptureResult.getCaughtEvents().stream() //
+                .map(LoggingEvent::getRenderedMessage) //
+                .collect(Collectors.joining("\n"));
     }
 
 }
