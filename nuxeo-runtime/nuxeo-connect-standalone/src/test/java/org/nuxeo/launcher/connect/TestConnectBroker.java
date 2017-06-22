@@ -342,7 +342,7 @@ public class TestConnectBroker {
         String logMessage = logCaptureResult.getCaughtEvents().stream() //
                 .map(LoggingEvent::getRenderedMessage) //
                 .collect(Collectors.joining("\n")); //
-        assertThat(logMessage).contains(keyFailure);
+        assertThat(logMessage).doesNotContain(keyFailure);
     }
 
     @Test

@@ -198,7 +198,7 @@ public class ConnectBroker {
 
     protected boolean isRemotePackageId(String pkgId) {
         return PackageUtils.isValidPackageId(pkgId)
-                && NuxeoConnectClient.getPackageManager().findPackageById(pkgId) != null;
+                && NuxeoConnectClient.getPackageManager().findRemotePackageById(pkgId) != null;
     }
 
     protected String getBestIdForNameInList(String pkgName, List<? extends Package> pkgList) {
@@ -1251,6 +1251,10 @@ public class ConnectBroker {
                 cmdOk = checkLocalPackagesAndAddLocalFiles(pkgsToInstall, upgradeMode, ignoreMissing,
                         namesOrIdsToInstall, localSnapshotsToUninstall, localSnapshotsToReplace,
                         localSnapshotsToMaybeReplace);
+
+                // Exclude snapshot packages which are not available in remote
+                localSnapshotsToMaybeReplace.removeIf(pkg -> !isRemotePackageId(pkg));
+                localSnapshotsToReplace.removeIf(pkg -> !isRemotePackageId(pkg));
 
                 // Replace snapshots to install but already in cache (requested by id or filename)
                 if (CollectionUtils.isNotEmpty(localSnapshotsToReplace)) {
